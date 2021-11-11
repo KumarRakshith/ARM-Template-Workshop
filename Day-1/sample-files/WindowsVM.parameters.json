@@ -1,0 +1,38 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmnameprefix": {
+            "value": "db07"
+        },
+        "application": {
+            "value": "fin"
+        },
+        "environment": {
+            "value": "UAT"
+        },
+        "SubnetName": {
+            "value": "default"
+        },
+        "SKU": {
+            "value": "Standard_B2s"
+        },
+        "username": {
+            "value": "divyadeep"
+        },
+        "existingvnetname": {
+            "value": "SCOM-vnet"
+        },
+        "existingvnetrg": {
+            "value": "SCOM"
+        },
+        "password": {
+            "reference": {
+                "keyVault": {
+                    "id": "/subscriptions/566a277e-4fb1-49f3-9664-4d00755cbe94/resourceGroups/LABTEST/providers/Microsoft.KeyVault/vaults/labkv2021demo"
+                },
+                "secretName": "lapassword"
+            }
+        }
+    }
+}

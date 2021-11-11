@@ -1,0 +1,186 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmnameprefix": {
+            "type": "string",
+            "minLength" : 3,
+            "maxLength" : 4,
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "application": {
+            "type": "string",
+            "minLength" : 3,
+            "maxLength" : 5,
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "environment": {
+            "type": "string",
+            "allowedValues" : ["DEV","UAT","PROD"],
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "SubnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "SKU": {
+            "type": "string",
+            
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "username": {
+            "type": "string",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "password": {
+            "type": "securestring",
+            "metadata": {
+                "description": "description"
+            }
+        },
+           "existingvnetname": {
+            "type": "string"
+        },
+        "existingvnetrg": {
+            "type": "string"
+        }
+    },
+    "functions": [],
+    "variables": {
+        "vmname": "[concat(parameters('vmnameprefix'),'-',parameters('application'),'-',parameters('environment'))]",
+        "pipname" : "[concat(variables('vmname'),'-pip')]", 
+        "nsg": "[concat(variables('vmname'),parameters('existingvnetname'),parameters('subnetname'),'-Nsg')]",
+        "nicname": "[concat(variables('vmname'),'-nic')]",
+        "osdiskname" : "[concat(variables('vmname'),'-osdisk')]",
+        "vnetId": "[resourceId(parameters('existingvnetrg'),'Microsoft.Network/virtualNetworks',parameters('existingvnetname'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('subnetName'))]"
+    },
+    "resources": [
+    
+        {
+            "name": "[variables('pipname')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-11-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "[variables('pipname')]"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[toLower(replace(variables('vmname'),'-', ''))]"
+                }
+            }
+        },
+        {
+            "name": "[variables('nsg')]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-11-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "nsgRule1",
+                        "properties": {
+                            "description": "description",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[variables('nicname')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))]"
+                
+            ],
+            "tags": {
+                "displayName": "[variables('nicname')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipConfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('pipname'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[variables('vmname')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2021-03-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicname'))]"
+            ],
+            "tags": {
+                "displayName": "[variables('vmname')]"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('SKU')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmname')]",
+                    "adminUsername": "[parameters('username')]",
+                    "adminPassword": "[parameters('password')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2012-R2-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[variables('osdiskname')]",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicname'))]"
+                        }
+                    ]
+                }
+            }
+        }
+
+    ],
+    "outputs": {}
+}
