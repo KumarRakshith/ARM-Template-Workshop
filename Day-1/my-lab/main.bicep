@@ -1,5 +1,5 @@
 resource storageAccount 'Microsoft.Storage/storageAccounts@2019-06-01' = {
-  name: 'toylaunchstorage'
+  name: 'toylaunchstoragerak'
   location: 'eastus'
   sku: {
     name: 'Standard_LRS'
